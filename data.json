@@ -1,0 +1,21 @@
+{
+  "sessions": [
+    {
+      "id": "0eq5v8s1mko1tsmk",
+      "prodImage": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "designImage": null,
+      "figmaUrl": "https://figma.com/file/test",
+      "comments": [
+        {
+          "id": 1,
+          "x": 10,
+          "y": 20,
+          "text": "Test comment",
+          "resolved": false
+        }
+      ],
+      "createdAt": "2026-01-21T13:18:34.796Z",
+      "updatedAt": "2026-01-21T13:18:34.796Z"
+    }
+  ]
+}
