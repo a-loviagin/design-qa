@@ -189,63 +189,48 @@ app.get('/api/figma/files/:fileKey', async (req, res) => {
   }
 });
 
-// Helper function to recursively extract styles from Figma document
-function extractStyles(node, styles = { colors: [], typography: [] }) {
-  if (!node) return styles;
+// Helper function to recursively collect style usage with their color/text values
+function collectStyleValues(node, styleValues = { fills: {}, texts: {} }) {
+  if (!node) return styleValues;
 
-  // Extract color styles (PAINT fills)
-  if (node.fills && Array.isArray(node.fills)) {
-    node.fills.forEach(fill => {
-      if (fill.type === 'SOLID' && fill.color) {
-        const colorStyle = node.styles?.fill || node.fillStyleId;
-        if (colorStyle) {
-          const existing = styles.colors.find(c => c.id === colorStyle);
-          if (!existing) {
-            const r = Math.round(fill.color.r * 255);
-            const g = Math.round(fill.color.g * 255);
-            const b = Math.round(fill.color.b * 255);
-            const a = fill.opacity !== undefined ? fill.opacity : fill.color.a || 1;
-            const hex = `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`;
-            styles.colors.push({
-              id: colorStyle,
-              name: colorStyle.split('/').pop() || 'Untitled Color',
-              value: hex,
-              rgba: `rgba(${r}, ${g}, ${b}, ${a.toFixed(2)})`,
-            });
-          }
-        }
+  // Collect fill color value for nodes with fill styles
+  if (node.styles?.fill && node.fills && Array.isArray(node.fills)) {
+    const styleId = node.styles.fill;
+    if (!styleValues.fills[styleId]) {
+      const solidFill = node.fills.find(f => f.type === 'SOLID' && f.color && f.visible !== false);
+      if (solidFill) {
+        const r = Math.round(solidFill.color.r * 255);
+        const g = Math.round(solidFill.color.g * 255);
+        const b = Math.round(solidFill.color.b * 255);
+        const hex = `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`;
+        styleValues.fills[styleId] = hex;
       }
-    });
+    }
   }
 
-  // Extract typography styles
-  if (node.style) {
-    const textStyle = node.styleId || node.textStyleId;
-    if (textStyle) {
-      const existing = styles.typography.find(t => t.id === textStyle);
-      if (!existing && node.style) {
-        styles.typography.push({
-          id: textStyle,
-          name: textStyle.split('/').pop() || 'Untitled Text',
-          fontSize: node.style.fontSize,
-          fontFamily: node.style.fontFamily,
-          fontWeight: node.style.fontWeight,
-          lineHeight: node.style.lineHeightPx,
-          letterSpacing: node.style.letterSpacing,
-        });
-      }
+  // Collect text style properties for nodes with text styles
+  if (node.styles?.text && node.style) {
+    const styleId = node.styles.text;
+    if (!styleValues.texts[styleId]) {
+      styleValues.texts[styleId] = {
+        fontSize: node.style.fontSize,
+        fontFamily: node.style.fontFamily,
+        fontWeight: node.style.fontWeight,
+        lineHeight: node.style.lineHeightPx,
+        letterSpacing: node.style.letterSpacing,
+      };
     }
   }
 
   // Recursively process children
   if (node.children && Array.isArray(node.children)) {
-    node.children.forEach(child => extractStyles(child, styles));
+    node.children.forEach(child => collectStyleValues(child, styleValues));
   }
 
-  return styles;
+  return styleValues;
 }
 
-// Fetch Figma styles (colors and typography)
+// Fetch Figma styles (colors and typography) - local styles + connected libraries
 app.get('/api/figma/styles/:fileKey', async (req, res) => {
   const { fileKey } = req.params;
   const figmaToken = req.headers['x-figma-token'];
@@ -255,49 +240,101 @@ app.get('/api/figma/styles/:fileKey', async (req, res) => {
   }
 
   try {
-    // Fetch full file with all nodes to extract styles
-    const response = await fetch(`https://api.figma.com/v1/files/${fileKey}`, {
-      headers: {
-        'X-Figma-Token': figmaToken
-      }
+    // Fetch full file to get local styles and their usage
+    const fileResponse = await fetch(`https://api.figma.com/v1/files/${fileKey}`, {
+      headers: { 'X-Figma-Token': figmaToken }
     });
 
-    const data = await response.json();
+    const fileData = await fileResponse.json();
 
-    if (!response.ok) {
-      return res.status(response.status).json(data);
+    if (!fileResponse.ok) {
+      return res.status(fileResponse.status).json(fileData);
     }
 
-    // Extract styles from the document
     const styles = { colors: [], typography: [] };
-    if (data.document) {
-      extractStyles(data.document, styles);
+
+    // Collect actual color/text values from nodes that use styles
+    const styleValues = { fills: {}, texts: {} };
+    if (fileData.document) {
+      collectStyleValues(fileData.document, styleValues);
     }
 
-    // Also try to get styles from the styles object if available
-    if (data.styles) {
-      Object.entries(data.styles).forEach(([styleId, style]) => {
+    // Process local styles from the file (data.styles contains both local and external)
+    if (fileData.styles) {
+      Object.entries(fileData.styles).forEach(([styleId, style]) => {
         if (style.styleType === 'FILL') {
-          // This would require another API call to get the actual color value
-          // For now, we'll rely on extracting from nodes
-        } else if (style.styleType === 'TEXT') {
-          const existing = styles.typography.find(t => t.id === styleId);
-          if (!existing) {
-            styles.typography.push({
+          const colorValue = styleValues.fills[styleId];
+          // Only include if we found the color value in the document
+          if (colorValue) {
+            styles.colors.push({
               id: styleId,
-              name: style.name || styleId.split('/').pop(),
-              description: style.description,
+              name: style.name,
+              value: colorValue,
+              description: style.description || '',
             });
           }
+        } else if (style.styleType === 'TEXT') {
+          const textProps = styleValues.texts[styleId] || {};
+          styles.typography.push({
+            id: styleId,
+            name: style.name,
+            fontSize: textProps.fontSize,
+            fontFamily: textProps.fontFamily,
+            fontWeight: textProps.fontWeight,
+            lineHeight: textProps.lineHeight,
+            letterSpacing: textProps.letterSpacing,
+            description: style.description || '',
+          });
         }
       });
     }
 
-    // Remove duplicates and sort
-    styles.colors = Array.from(new Map(styles.colors.map(c => [c.id, c])).values())
-      .sort((a, b) => a.name.localeCompare(b.name));
-    styles.typography = Array.from(new Map(styles.typography.map(t => [t.id, t])).values())
-      .sort((a, b) => a.name.localeCompare(b.name));
+    // For colors without values found in document, try to fetch from style nodes
+    // This handles styles that exist but aren't actively used in the visible document
+    const colorsWithoutValues = Object.entries(fileData.styles || {})
+      .filter(([id, s]) => s.styleType === 'FILL' && !styleValues.fills[id])
+      .map(([id, s]) => ({ id, name: s.name, description: s.description }));
+
+    if (colorsWithoutValues.length > 0) {
+      // Fetch the style node details to get color values
+      const nodeIds = colorsWithoutValues.map(c => c.id).join(',');
+      try {
+        const nodesResponse = await fetch(
+          `https://api.figma.com/v1/files/${fileKey}/nodes?ids=${encodeURIComponent(nodeIds)}`,
+          { headers: { 'X-Figma-Token': figmaToken } }
+        );
+        const nodesData = await nodesResponse.json();
+
+        if (nodesResponse.ok && nodesData.nodes) {
+          colorsWithoutValues.forEach(colorStyle => {
+            const nodeData = nodesData.nodes[colorStyle.id];
+            if (nodeData?.document?.fills) {
+              const solidFill = nodeData.document.fills.find(f => f.type === 'SOLID' && f.color);
+              if (solidFill) {
+                const r = Math.round(solidFill.color.r * 255);
+                const g = Math.round(solidFill.color.g * 255);
+                const b = Math.round(solidFill.color.b * 255);
+                const hex = `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`;
+                styles.colors.push({
+                  id: colorStyle.id,
+                  name: colorStyle.name,
+                  value: hex,
+                  description: colorStyle.description || '',
+                });
+              }
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Could not fetch additional style nodes:', e.message);
+      }
+    }
+
+    // Sort alphabetically by name
+    styles.colors.sort((a, b) => a.name.localeCompare(b.name));
+    styles.typography.sort((a, b) => a.name.localeCompare(b.name));
+
+    console.log(`Fetched ${styles.colors.length} colors and ${styles.typography.length} text styles from Figma`);
 
     res.json(styles);
   } catch (error) {

@@ -108,6 +108,7 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      min-height: 0;
     }
     
     .panel-header {
@@ -168,9 +169,10 @@
     .panel-content {
       flex: 1;
       padding: 16px;
-      overflow: visible;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
+      min-height: 0;
     }
     
     .drop-zone {
@@ -182,7 +184,8 @@
       justify-content: center;
       transition: all 0.2s;
       position: relative;
-      overflow: visible;
+      overflow: hidden;
+      min-height: 0;
     }
     
     .drop-zone:hover {
@@ -237,14 +240,21 @@
       align-items: center;
       justify-content: center;
       cursor: crosshair;
-      overflow: visible;
+      overflow: hidden;
+      min-height: 0;
+      max-width: 100%;
+      max-height: 100%;
     }
     
     .preview-image {
       max-width: 100%;
       max-height: 100%;
+      width: auto;
+      height: auto;
       object-fit: contain;
+      object-position: center;
       border-radius: 8px;
+      display: block;
     }
     
     .comment-pin {
@@ -331,6 +341,35 @@
       outline: none;
       direction: ltr;
       text-align: left;
+      unicode-bidi: plaintext;
+    }
+
+    .comment-editor {
+      width: 100%;
+      min-height: 80px;
+      max-height: 200px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      color: #e4e4e7;
+      font-family: inherit;
+      outline: none;
+      direction: ltr;
+      text-align: left;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .comment-editor:focus {
+      border-color: #6366f1;
+    }
+
+    .comment-editor:empty:before {
+      content: attr(data-placeholder);
+      color: #52525b;
     }
     
     .comment-input-popup textarea:focus {
@@ -342,25 +381,24 @@
     }
     
     .token-dropdown {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
+      position: fixed;
       background: #1a1a1d;
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 8px;
       margin-top: 4px;
-      max-height: 200px;
+      max-height: 300px;
       overflow-y: auto;
-      z-index: 200;
+      z-index: 10000;
       box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      width: 280px;
+      min-width: 200px;
     }
     
     .token-dropdown-item {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
+      gap: 12px;
+      padding: 8px 12px;
       cursor: pointer;
       transition: all 0.15s;
       font-size: 13px;
@@ -369,6 +407,33 @@
     .token-dropdown-item:hover,
     .token-dropdown-item.selected {
       background: rgba(99, 102, 241, 0.15);
+    }
+    
+    .command-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    
+    .command-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .command-label {
+      font-weight: 500;
+      color: #e4e4e7;
+    }
+    
+    .command-description {
+      font-size: 11px;
+      color: #71717a;
     }
     
     .token-color-preview {
@@ -389,6 +454,62 @@
       color: #71717a;
       font-size: 12px;
       font-family: 'JetBrains Mono', monospace;
+    }
+
+    .token-dropdown {
+      background: #1a1a1d;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      width: 100%;
+    }
+
+    .token-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-size: 13px;
+    }
+
+    .token-dropdown-item:hover,
+    .token-dropdown-item.selected {
+      background: rgba(99, 102, 241, 0.15);
+    }
+
+    .token-dropdown-item .icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+
+    .token-dropdown-item .label {
+      flex: 1;
+      color: #e4e4e7;
+      font-weight: 500;
+    }
+
+    .token-dropdown-item .description {
+      font-size: 11px;
+      color: #71717a;
+    }
+
+    .token-color-preview {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.2);
+      flex-shrink: 0;
+    }
+
+    .token-name {
+      flex: 1;
+      color: #e4e4e7;
+      font-weight: 500;
     }
     
     .popup-actions {
@@ -630,7 +751,16 @@
       color: #a1a1aa;
       line-height: 1.5;
     }
-    
+
+    .comment-text .token-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+      font-size: 12px;
+      margin: 0 2px;
+    }
+
     .comment-card.resolved .comment-text {
       text-decoration: line-through;
       opacity: 0.6;
@@ -897,7 +1027,10 @@
 </head>
 <body>
   <div id="root"></div>
-  
+
+  <!-- TokenEditor component -->
+  <script src="TokenEditor.js"></script>
+
   <script type="text/babel">
     const { useState, useRef, useCallback, useEffect } = React;
 
@@ -945,8 +1078,6 @@
         }
       });
       const [activePinId, setActivePinId] = useState(null);
-      const newCommentRef = useRef(null);
-      const activePinCommentRef = useRef(null);
       const [pendingPin, setPendingPin] = useState(null);
       const [isLoadingFigma, setIsLoadingFigma] = useState(false);
       const [figmaError, setFigmaError] = useState('');
@@ -970,15 +1101,19 @@
       const [isSaving, setIsSaving] = useState(false);
       const [saveMessage, setSaveMessage] = useState('');
       const prodImageRef = useRef(null);
-      const [tokenDropdown, setTokenDropdown] = useState({ 
-        show: false, 
-        level: 1, // 1 = command selection, 2 = style selection
-        type: null, 
-        tokens: [], 
-        selectedIndex: 0, 
-        commandStart: 0 
+      const [figmaTokens, setFigmaTokens] = useState(() => {
+        try {
+          const cached = localStorage.getItem('designqa_figma_tokens');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed.colors && parsed.typography) {
+              return parsed;
+            }
+          }
+        } catch {}
+        return { colors: [], typography: [] };
       });
-      const commentTextareaRef = useRef(null);
+      const [isLoadingTokens, setIsLoadingTokens] = useState(false);
 
       // Save comments to localStorage whenever they change
       useEffect(() => {
@@ -1064,6 +1199,7 @@
         })();
       }, []);
 
+
       const parseFigmaUrl = (url) => {
         try {
           const urlObj = new URL(url);
@@ -1134,10 +1270,12 @@
           }
 
           const imageUrl = data.images?.[parsed.nodeId];
-          
+
           if (imageUrl) {
             setDesignImage(imageUrl);
             setFigmaError('');
+            // Fetch design tokens after successfully loading the image
+            fetchFigmaTokens(parsed.fileKey);
           } else {
             setFigmaError('Could not get image for this node. Try selecting a different frame.');
           }
@@ -1149,198 +1287,77 @@
         }
       };
 
-      const selectCommand = async (commandType) => {
-        if (!figmaUrl.trim() || !figmaToken) {
-          setTokenDropdown(prev => ({
-            ...prev,
-            level: 2,
-            type: commandType,
-            tokens: [],
-            selectedIndex: 0
-          }));
-          return;
+      const fetchFigmaTokens = async (fileKey, forceRefresh = false) => {
+        if (!figmaToken || !fileKey) return;
+
+        // Check if we have cached tokens and they're not too old (1 hour)
+        const cacheKey = `designqa_figma_tokens_${fileKey}`;
+        const cacheTimeKey = `designqa_figma_tokens_time_${fileKey}`;
+        const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+
+        if (!forceRefresh) {
+          try {
+            const cachedTime = localStorage.getItem(cacheTimeKey);
+            const cachedTokens = localStorage.getItem(cacheKey);
+            if (cachedTime && cachedTokens) {
+              const age = Date.now() - parseInt(cachedTime, 10);
+              if (age < CACHE_DURATION) {
+                const parsed = JSON.parse(cachedTokens);
+                if (parsed.colors?.length > 0 || parsed.typography?.length > 0) {
+                  setFigmaTokens(parsed);
+                  return;
+                }
+              }
+            }
+          } catch {}
         }
 
-        const parsed = parseFigmaUrl(figmaUrl);
-        if (!parsed || !parsed.fileKey) {
-          setTokenDropdown(prev => ({
-            ...prev,
-            level: 2,
-            type: commandType,
-            tokens: [],
-            selectedIndex: 0
-          }));
-          return;
-        }
-
+        setIsLoadingTokens(true);
         try {
-          const response = await fetch(`/api/figma/styles/${parsed.fileKey}`, {
+          const response = await fetch(`/api/figma/styles/${fileKey}`, {
             headers: {
               'X-Figma-Token': figmaToken
             }
           });
 
           if (!response.ok) {
-            setTokenDropdown(prev => ({
-              ...prev,
-              level: 2,
-              type: commandType,
-              tokens: [],
-              selectedIndex: 0
-            }));
+            console.warn('Could not fetch Figma tokens');
             return;
           }
 
           const data = await response.json();
-          const tokens = commandType === 'color' ? (data.colors || []) : (data.typography || []);
-          
-          setTokenDropdown(prev => ({
-            ...prev,
-            level: 2,
-            type: commandType,
-            tokens,
-            selectedIndex: 0
-          }));
+
+          if (data.colors || data.typography) {
+            const tokens = {
+              colors: data.colors || [],
+              typography: data.typography || []
+            };
+            setFigmaTokens(tokens);
+
+            // Cache the tokens
+            try {
+              localStorage.setItem(cacheKey, JSON.stringify(tokens));
+              localStorage.setItem(cacheTimeKey, Date.now().toString());
+              // Also save as the "current" tokens for initial load
+              localStorage.setItem('designqa_figma_tokens', JSON.stringify(tokens));
+            } catch {}
+          }
         } catch (error) {
-          console.error('Failed to fetch styles:', error);
-          setTokenDropdown(prev => ({
-            ...prev,
-            level: 2,
-            type: commandType,
-            tokens: [],
-            selectedIndex: 0
-          }));
+          console.error('Error fetching Figma tokens:', error);
+        } finally {
+          setIsLoadingTokens(false);
         }
       };
 
-      const handleCommentInput = (e) => {
-        const value = e.target.value;
-        setNewCommentText(value);
-
-        const cursorPos = e.target.selectionStart;
-        const textBeforeCursor = value.substring(0, cursorPos);
-        const lastSlashIndex = textBeforeCursor.lastIndexOf('/');
-        
-        // Check if there's a space or newline between slash and cursor (command already completed)
-        const textAfterSlash = lastSlashIndex !== -1 ? textBeforeCursor.substring(lastSlashIndex + 1) : '';
-        const hasSpaceOrNewline = textAfterSlash.includes(' ') || textAfterSlash.includes('\n');
-        
-        if (lastSlashIndex !== -1 && !hasSpaceOrNewline) {
-          const commandText = textAfterSlash.toLowerCase();
-          
-          // If just "/" or empty after slash, show first level (command selection)
-          if (commandText === '' || commandText.length === 0) {
-            setTokenDropdown({
-              show: true,
-              level: 1,
-              type: null,
-              tokens: [],
-              selectedIndex: 0,
-              commandStart: lastSlashIndex
-            });
-          } 
-          // If user selected a command and we're in level 2, show styles
-          else if (tokenDropdown.level === 2 && tokenDropdown.type) {
-            // Keep level 2 dropdown open, just update command start if needed
-            setTokenDropdown(prev => ({ ...prev, commandStart: lastSlashIndex }));
-          }
-          // If user is typing something else, hide dropdown
-          else {
-            setTokenDropdown({ show: false, level: 1, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
-          }
-        } else {
-          setTokenDropdown({ show: false, level: 1, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
-        }
-      };
-
-      const handleCommentKeyDown = (e) => {
-        if (!tokenDropdown.show) return;
-
-        if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          if (tokenDropdown.level === 1) {
-            // First level: navigate between "colours" and "type"
-            setTokenDropdown(prev => ({
-              ...prev,
-              selectedIndex: Math.min(prev.selectedIndex + 1, 1)
-            }));
-          } else {
-            // Second level: navigate between styles
-            const maxIndex = tokenDropdown.tokens.length > 0 ? tokenDropdown.tokens.length - 1 : 0;
-            setTokenDropdown(prev => ({
-              ...prev,
-              selectedIndex: Math.min(prev.selectedIndex + 1, maxIndex)
-            }));
-          }
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          setTokenDropdown(prev => ({
-            ...prev,
-            selectedIndex: Math.max(prev.selectedIndex - 1, 0)
-          }));
-        } else if (e.key === 'Enter') {
-          e.preventDefault();
-          if (tokenDropdown.level === 1) {
-            // First level: select command
-            const commandType = tokenDropdown.selectedIndex === 0 ? 'color' : 'typography';
-            selectCommand(commandType);
-          } else if (tokenDropdown.level === 2 && tokenDropdown.tokens.length > 0) {
-            // Second level: insert token
-            insertToken(tokenDropdown.tokens[tokenDropdown.selectedIndex]);
-          }
-        } else if (e.key === 'Escape') {
-          e.preventDefault();
-          if (tokenDropdown.level === 2) {
-            // Go back to level 1
-            setTokenDropdown(prev => ({
-              ...prev,
-              level: 1,
-              type: null,
-              tokens: [],
-              selectedIndex: 0
-            }));
-          } else {
-            // Close dropdown
-            setTokenDropdown({ show: false, level: 1, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
+      // Fetch tokens on page load if we have a saved Figma URL and token
+      useEffect(() => {
+        if (figmaUrl && figmaToken) {
+          const parsed = parseFigmaUrl(figmaUrl);
+          if (parsed?.fileKey) {
+            fetchFigmaTokens(parsed.fileKey);
           }
         }
-      };
-
-      const insertToken = (token) => {
-        if (!commentTextareaRef.current || !token) return;
-
-        const textarea = commentTextareaRef.current;
-        const currentText = newCommentText;
-        const commandStart = tokenDropdown.commandStart;
-        const cursorPos = textarea.selectionStart;
-        
-        // Find where the command ends (either space, newline, or end of text)
-        let commandEnd = cursorPos;
-        for (let i = commandStart + 1; i < currentText.length; i++) {
-          if (currentText[i] === ' ' || currentText[i] === '\n') {
-            commandEnd = i;
-            break;
-          }
-        }
-        
-        let tokenText = '';
-        if (tokenDropdown.type === 'color') {
-          tokenText = `${token.name} (${token.value})`;
-        } else {
-          tokenText = `${token.name} (${token.fontSize}px ${token.fontFamily || 'N/A'})`;
-        }
-
-        const newText = currentText.substring(0, commandStart) + tokenText + ' ' + currentText.substring(commandEnd);
-        setNewCommentText(newText);
-        setTokenDropdown({ show: false, level: 1, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
-        
-        // Set cursor position after inserted token
-        setTimeout(() => {
-          const newCursorPos = commandStart + tokenText.length + 1;
-          textarea.setSelectionRange(newCursorPos, newCursorPos);
-          textarea.focus();
-        }, 0);
-      };
+      }, []);
 
       const saveSession = async () => {
         if (!prodImage && !designImage && !figmaUrl && comments.length === 0) {
@@ -1452,70 +1469,14 @@
 
       const handleImageClick = useCallback((e) => {
         if (!prodImage || !prodImageRef.current) return;
-        
+
         const rect = prodImageRef.current.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
-        
+
         setActivePinId(null);
-        if (activePinCommentRef.current) {
-          activePinCommentRef.current.value = '';
-        }
         setPendingPin({ x, y });
-        if (newCommentRef.current) {
-          newCommentRef.current.value = '';
-        }
       }, [prodImage]);
-
-      const submitComment = useCallback(() => {
-        const raw = newCommentRef.current ? newCommentRef.current.value : '';
-        const trimmed = (raw || '').trim();
-        if (pendingPin && trimmed) {
-          setComments(prev => [...prev, {
-            id: Date.now(),
-            x: pendingPin.x,
-            y: pendingPin.y,
-            comments: [
-              {
-                id: `${Date.now()}-1`,
-                text: trimmed,
-                resolved: false,
-              },
-            ],
-          }]);
-          setPendingPin(null);
-          if (newCommentRef.current) {
-            newCommentRef.current.value = '';
-          }
-        }
-      }, [pendingPin]);
-
-      const addCommentToActivePin = useCallback(() => {
-        if (!activePinId || !activePinCommentRef.current) return;
-        const raw = activePinCommentRef.current.value || '';
-        const text = raw.trim();
-        if (!text) return;
-        setComments(prev =>
-          prev.map(pin =>
-            pin.id === activePinId
-              ? {
-                  ...pin,
-                  comments: [
-                    ...pin.comments,
-                    {
-                      id: Date.now(),
-                      text,
-                      resolved: false,
-                    },
-                  ],
-                }
-              : pin
-          )
-        );
-        if (activePinCommentRef.current) {
-          activePinCommentRef.current.value = '';
-        }
-      }, [activePinId]);
 
       const toggleResolved = useCallback((pinId, commentId) => {
         setComments(prev =>
@@ -1547,9 +1508,6 @@
           }, [])
         );
         setActivePinId(null);
-        if (activePinCommentRef.current) {
-          activePinCommentRef.current.value = '';
-        }
       }, []);
 
       const DropZone = ({ onDrop, onFileSelect, image, children, inputId }) => (
@@ -1663,11 +1621,10 @@
                         key={pin.id}
                         className={`comment-pin ${pinResolved ? 'resolved' : ''} ${activePinId === pin.id ? 'active' : ''}`}
                         style={{ left: `${pin.x}%`, top: `${pin.y}%` }}
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setPendingPin(null);
-                          setActivePinId(pin.id); 
-                          if (activePinCommentRef.current) activePinCommentRef.current.value = '';
+                          setActivePinId(pin.id);
                         }}
                       >
                         <span>{index + 1}</span>
@@ -1677,96 +1634,46 @@
                     {pendingPin && (
                       <>
                         <div className="pending-pin" style={{ left: `${pendingPin.x}%`, top: `${pendingPin.y}%` }} />
-                        <div 
+                        <div
                           className="comment-input-popup"
-                          style={{ 
-                            left: `${Math.min(pendingPin.x, 60)}%`, 
-                            top: `${Math.min(pendingPin.y + 5, 80)}%`,
-                            maxWidth: '280px',
-                            maxHeight: '400px'
+                          style={{
+                            left: `${Math.min(pendingPin.x, 60)}%`,
+                            top: `${Math.min(pendingPin.y + 5, 80)}%`
                           }}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <div style={{ position: 'relative' }}>
-                            <textarea
-                              ref={commentTextareaRef}
-                              placeholder="What needs to change?"
-                              rows={3}
-                              value={newCommentText}
-                              onChange={handleCommentInput}
-                              onKeyDown={handleCommentKeyDown}
-                              autoFocus
-                            />
-                            {tokenDropdown.show && (
-                              <div className="token-dropdown">
-                                {tokenDropdown.level === 1 ? (
-                                  // Level 1: Show command options
-                                  <>
-                                    <div
-                                      className={`token-dropdown-item ${tokenDropdown.selectedIndex === 0 ? 'selected' : ''}`}
-                                      onClick={() => selectCommand('color')}
-                                      onMouseEnter={() => setTokenDropdown(prev => ({ ...prev, selectedIndex: 0 }))}
-                                    >
-                                      <span className="token-name">colours</span>
-                                    </div>
-                                    <div
-                                      className={`token-dropdown-item ${tokenDropdown.selectedIndex === 1 ? 'selected' : ''}`}
-                                      onClick={() => selectCommand('typography')}
-                                      onMouseEnter={() => setTokenDropdown(prev => ({ ...prev, selectedIndex: 1 }))}
-                                    >
-                                      <span className="token-name">type</span>
-                                    </div>
-                                  </>
-                                ) : (
-                                  // Level 2: Show styles or "No styles found"
-                                  tokenDropdown.tokens.length === 0 ? (
-                                    <div className="token-dropdown-item" style={{ color: '#71717a', fontStyle: 'italic', cursor: 'default', pointerEvents: 'none' }}>
-                                      No styles found
-                                    </div>
-                                  ) : (
-                                    tokenDropdown.tokens.map((token, idx) => (
-                                      <div
-                                        key={token.id || idx}
-                                        className={`token-dropdown-item ${idx === tokenDropdown.selectedIndex ? 'selected' : ''}`}
-                                        onClick={() => insertToken(token)}
-                                        onMouseEnter={() => setTokenDropdown(prev => ({ ...prev, selectedIndex: idx }))}
-                                      >
-                                        {tokenDropdown.type === 'color' ? (
-                                          <>
-                                            <span className="token-color-preview" style={{ backgroundColor: token.value }}></span>
-                                            <span className="token-name">{token.name}</span>
-                                            <span className="token-value">{token.value}</span>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <span className="token-name">{token.name}</span>
-                                            <span className="token-value">{token.fontSize}px {token.fontFamily || 'N/A'}</span>
-                                          </>
-                                        )}
-                                      </div>
-                                    ))
-                                  )
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <div className="popup-actions">
-                            <button className="popup-btn cancel" onClick={() => { 
-                              setPendingPin(null); 
-                              if (newCommentRef.current) newCommentRef.current.value = '';
-                            }}>Cancel</button>
-                            <button className="popup-btn submit" onClick={submitComment}>Add Comment</button>
-                          </div>
+                          <TokenEditor
+                            placeholder="What needs to change? Type / for tokens"
+                            tokens={{
+                              colors: figmaTokens.colors || [],
+                              typography: figmaTokens.typography || [],
+                              spacing: figmaTokens.spacing || []
+                            }}
+                            isLoadingTokens={isLoadingTokens}
+                            autoFocus={true}
+                            submitLabel="Add Comment"
+                            cancelLabel="Cancel"
+                            onSubmit={(text, html) => {
+                              setComments(prev => [...prev, {
+                                id: Date.now(),
+                                x: pendingPin.x,
+                                y: pendingPin.y,
+                                comments: [{ id: `${Date.now()}-1`, text, html, resolved: false }],
+                              }]);
+                              setPendingPin(null);
+                            }}
+                            onCancel={() => setPendingPin(null)}
+                          />
                         </div>
                       </>
                     )}
 
-                    {activePin && (
-                      <div 
+                    {activePin && !pendingPin && (
+                      <div
                         className="comment-input-popup"
-                        style={{ 
-                          left: `${Math.min(activePin.x, 60)}%`, 
-                          top: `${activePin.y + 5}%` 
+                        style={{
+                          left: `${Math.min(activePin.x, 60)}%`,
+                          top: `${activePin.y + 5}%`
                         }}
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -1798,24 +1705,36 @@
                                     </button>
                                   </div>
                                 </div>
-                                <p className={`comment-text${c.resolved ? ' resolved' : ''}`}>{c.text}</p>
+                                <p
+                                  className={`comment-text${c.resolved ? ' resolved' : ''}`}
+                                  dangerouslySetInnerHTML={{ __html: c.html || c.text }}
+                                />
                               </div>
                             ))}
                           </div>
                         )}
-                        <textarea
-                          placeholder={activePin.comments.length ? 'Add another note…' : 'What needs to change?'}
-                          rows={3}
-                          ref={activePinCommentRef}
-                          autoFocus={!pendingPin}
+                        <TokenEditor
+                          placeholder={activePin.comments.length ? 'Add another note… Type / for tokens' : 'What needs to change? Type / for tokens'}
+                          tokens={{
+                            colors: figmaTokens.colors || [],
+                            typography: figmaTokens.typography || [],
+                            spacing: figmaTokens.spacing || []
+                          }}
+                          isLoadingTokens={isLoadingTokens}
+                          autoFocus={true}
+                          submitLabel="Add Comment"
+                          cancelLabel="Close"
+                          onSubmit={(text, html) => {
+                            setComments(prev =>
+                              prev.map(pin =>
+                                pin.id === activePinId
+                                  ? { ...pin, comments: [...pin.comments, { id: Date.now(), text, html, resolved: false }] }
+                                  : pin
+                              )
+                            );
+                          }}
+                          onCancel={() => setActivePinId(null)}
                         />
-                        <div className="popup-actions">
-                          <button className="popup-btn cancel" onClick={() => { 
-                            setActivePinId(null); 
-                            if (activePinCommentRef.current) activePinCommentRef.current.value = '';
-                          }}>Close</button>
-                          <button className="popup-btn submit" onClick={addCommentToActivePin}>Add Comment</button>
-                        </div>
                       </div>
                     )}
                   </div>
@@ -1832,11 +1751,13 @@
                   <span className="panel-badge badge-design">Figma</span>
                 </div>
                 {(designImage || figmaUrl) && (
-                  <button className="clear-btn" onClick={() => { 
-                    setDesignImage(null); 
-                    setFigmaUrl(''); 
+                  <button className="clear-btn" onClick={() => {
+                    setDesignImage(null);
+                    setFigmaUrl('');
+                    setFigmaTokens({ colors: [], typography: [] });
                     localStorage.removeItem('designqa_design_image');
                     localStorage.removeItem('designqa_figma_url');
+                    localStorage.removeItem('designqa_figma_tokens');
                   }}>
                     Clear
                   </button>
