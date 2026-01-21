@@ -1,0 +1,17 @@
+{
+  "name": "design-qa",
+  "version": "1.0.0",
+  "description": "Design QA tool for comparing production screenshots with Figma designs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DesignQA - Compare Production vs Design</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background: #0a0a0b;
+      font-family: 'DM Sans', sans-serif;
+      color: #e4e4e7;
+    }
+    
+    .qa-container {
+      min-height: 100vh;
+      padding: 24px;
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .logo-mark {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      color: white;
+    }
+    
+    .logo-text {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+    
+    .logo-text span {
+      color: #71717a;
+      font-weight: 400;
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .comment-count {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 100px;
+      font-size: 13px;
+      color: #a1a1aa;
+    }
+    
+    .comment-count .count {
+      background: #6366f1;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 100px;
+      font-weight: 500;
+      font-size: 12px;
+    }
+    
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      height: calc(100vh - 120px);
+    }
+    
+    .panel {
+      background: #111113;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .panel-title h2 {
+      font-size: 14px;
+      font-weight: 500;
+      color: #e4e4e7;
+    }
+    
+    .panel-badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .badge-prod {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+    
+    .badge-design {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+    }
+    
+    .clear-btn {
+      font-size: 12px;
+      color: #71717a;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    
+    .clear-btn:hover {
+      background: rgba(255,255,255,0.05);
+      color: #a1a1aa;
+    }
+    
+    .panel-content {
+      flex: 1;
+      padding: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .drop-zone {
+      flex: 1;
+      border: 2px dashed rgba(255,255,255,0.1);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .drop-zone:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      background: rgba(99, 102, 241, 0.03);
+    }
+    
+    .drop-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: #52525b;
+    }
+    
+    .drop-icon {
+      opacity: 0.4;
+    }
+    
+    .drop-text {
+      font-size: 15px;
+      font-weight: 500;
+      color: #71717a;
+    }
+    
+    .drop-or {
+      font-size: 12px;
+      color: #52525b;
+    }
+    
+    .upload-btn {
+      font-size: 13px;
+      padding: 10px 20px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #a1a1aa;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .upload-btn:hover {
+      background: rgba(255,255,255,0.08);
+      color: #e4e4e7;
+    }
+    
+    .image-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: crosshair;
+    }
+    
+    .preview-image {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+    
+    .comment-pin {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      background: #6366f1;
+      border: 2px solid white;
+      border-radius: 50% 50% 50% 0;
+      transform: translate(-50%, -100%) rotate(-45deg);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: white;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+      transition: all 0.15s;
+      z-index: 10;
+    }
+    
+    .comment-pin span {
+      transform: rotate(45deg);
+    }
+    
+    .comment-pin:hover {
+      transform: translate(-50%, -100%) rotate(-45deg) scale(1.1);
+    }
+    
+    .comment-pin.resolved {
+      background: #22c55e;
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+    }
+    
+    .comment-pin.active {
+      transform: translate(-50%, -100%) rotate(-45deg) scale(1.15);
+      z-index: 20;
+    }
+    
+    .pending-pin {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      background: #f59e0b;
+      border: 2px solid white;
+      border-radius: 50% 50% 50% 0;
+      transform: translate(-50%, -100%) rotate(-45deg);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    
+    .comment-input-popup {
+      position: absolute;
+      background: #1a1a1d;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 12px;
+      width: 280px;
+      z-index: 100;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    
+    .comment-input-popup textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      color: #e4e4e7;
+      resize: none;
+      font-family: inherit;
+      outline: none;
+    }
+    
+    .comment-input-popup textarea:focus {
+      border-color: #6366f1;
+    }
+    
+    .comment-input-popup textarea::placeholder {
+      color: #52525b;
+    }
+    
+    .popup-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    
+    .popup-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+    }
+    
+    .popup-btn.cancel {
+      background: rgba(255,255,255,0.05);
+      color: #a1a1aa;
+    }
+    
+    .popup-btn.cancel:hover {
+      background: rgba(255,255,255,0.08);
+    }
+    
+    .popup-btn.submit {
+      background: #6366f1;
+      color: white;
+    }
+    
+    .popup-btn.submit:hover {
+      background: #5558e3;
+    }
+    
+    .figma-input-wrapper {
+      margin-bottom: 12px;
+    }
+    
+    .figma-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      font-size: 13px;
+      color: #e4e4e7;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+      transition: all 0.15s;
+    }
+    
+    .figma-input:focus {
+      border-color: #6366f1;
+      background: rgba(99, 102, 241, 0.05);
+    }
+    
+    .figma-input::placeholder {
+      color: #52525b;
+      font-family: 'DM Sans', sans-serif;
+    }
+    
+    .figma-input-row {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .figma-input-row .figma-input {
+      flex: 1;
+    }
+    
+    .fetch-btn {
+      padding: 0 16px;
+      background: #6366f1;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    
+    .fetch-btn:hover {
+      background: #5558e3;
+    }
+    
+    .fetch-btn:disabled {
+      background: #3f3f46;
+      cursor: not-allowed;
+    }
+    
+    .loading-spinner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 40px;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(99, 102, 241, 0.2);
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      font-size: 13px;
+      color: #71717a;
+    }
+    
+    .error-msg {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #f87171;
+      margin-top: 8px;
+    }
+    
+    .hint-figma {
+      font-size: 11px;
+      color: #52525b;
+      margin-top: 6px;
+    }
+    
+    .or-divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+      color: #52525b;
+      font-size: 12px;
+    }
+    
+    .or-divider::before,
+    .or-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+    }
+    
+    .comments-sidebar {
+      position: fixed;
+      right: 24px;
+      top: 100px;
+      width: 300px;
+      max-height: calc(100vh - 140px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .comment-card {
+      background: #111113;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .comment-card:hover {
+      border-color: rgba(255,255,255,0.12);
+      background: #141416;
+    }
+    
+    .comment-card.active {
+      border-color: #6366f1;
+    }
+    
+    .comment-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    
+    .comment-number {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6366f1;
+    }
+    
+    .comment-card.resolved .comment-number {
+      color: #22c55e;
+    }
+    
+    .comment-actions {
+      display: flex;
+      gap: 4px;
+    }
+    
+    .comment-action-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: none;
+      background: rgba(255,255,255,0.05);
+      color: #71717a;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    
+    .comment-action-btn:hover {
+      background: rgba(255,255,255,0.1);
+      color: #a1a1aa;
+    }
+    
+    .comment-action-btn.resolve:hover {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+    }
+    
+    .comment-action-btn.delete:hover {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+    
+    .comment-text {
+      font-size: 13px;
+      color: #a1a1aa;
+      line-height: 1.5;
+    }
+    
+    .comment-card.resolved .comment-text {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+    
+    .hint-text {
+      font-size: 11px;
+      color: #52525b;
+      text-align: center;
+      margin-top: 8px;
+    }
+    
+    .token-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+    }
+    
+    .token-modal {
+      background: #18181b;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 28px;
+      width: 420px;
+      max-width: 90vw;
+    }
+    
+    .token-modal-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .figma-logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #f24e1e 0%, #a259ff 50%, #1abcfe 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .token-modal h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e4e4e7;
+    }
+    
+    .token-modal p {
+      font-size: 13px;
+      color: #a1a1aa;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    
+    .token-modal a {
+      color: #818cf8;
+      text-decoration: none;
+    }
+    
+    .token-modal a:hover {
+      text-decoration: underline;
+    }
+    
+    .token-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      font-size: 13px;
+      color: #e4e4e7;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+      margin-bottom: 16px;
+    }
+    
+    .token-input:focus {
+      border-color: #6366f1;
+    }
+    
+    .token-input::placeholder {
+      color: #52525b;
+      font-family: 'DM Sans', sans-serif;
+    }
+    
+    .token-modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
+    
+    .remember-me input {
+      display: none;
+    }
+    
+    .checkbox-custom {
+      width: 18px;
+      height: 18px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      background: rgba(255,255,255,0.03);
+    }
+    
+    .remember-me:hover .checkbox-custom {
+      border-color: rgba(255,255,255,0.3);
+    }
+    
+    .remember-me input:checked + .checkbox-custom {
+      background: #6366f1;
+      border-color: #6366f1;
+    }
+    
+    .checkbox-custom svg {
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all 0.15s;
+    }
+    
+    .remember-me input:checked + .checkbox-custom svg {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    .remember-me span {
+      font-size: 13px;
+      color: #a1a1aa;
+    }
+    
+    .token-modal-btn {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+    }
+    
+    .token-modal-btn.cancel {
+      background: rgba(255,255,255,0.05);
+      color: #a1a1aa;
+    }
+    
+    .token-modal-btn.cancel:hover {
+      background: rgba(255,255,255,0.08);
+    }
+    
+    .token-modal-btn.connect {
+      background: #6366f1;
+      color: white;
+    }
+    
+    .token-modal-btn.connect:hover {
+      background: #5558e3;
+    }
+    
+    .token-modal-btn.connect:disabled {
+      background: #3f3f46;
+      cursor: not-allowed;
+    }
+    
+    .figma-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      border-radius: 100px;
+      font-size: 12px;
+      color: #4ade80;
+    }
+    
+    .figma-status .dot {
+      width: 6px;
+      height: 6px;
+      background: #4ade80;
+      border-radius: 50%;
+    }
+    
+    .figma-status button {
+      background: none;
+      border: none;
+      color: #71717a;
+      cursor: pointer;
+      padding: 2px;
+      margin-left: 4px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .figma-status button:hover {
+      color: #f87171;
+    }
+    
+    .connect-figma-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      font-size: 13px;
+      color: #a1a1aa;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 12px;
+    }
+    
+    .connect-figma-btn:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.15);
+      color: #e4e4e7;
+    }
+    
+    .connect-figma-btn .figma-icon {
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, #f24e1e 0%, #a259ff 50%, #1abcfe 100%);
+      border-radius: 4px;
+    }
+
+    @media (max-width: 1200px) {
+      .comments-sidebar {
+        position: static;
+        width: 100%;
+        max-height: none;
+        margin-top: 20px;
+      }
+      
+      .main-grid {
+        height: auto;
+        min-height: 500px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState, useRef, useCallback } = React;
+
+    const DesignQA = () => {
+      const [prodImage, setProdImage] = useState(null);
+      const [designImage, setDesignImage] = useState(null);
+      const [figmaUrl, setFigmaUrl] = useState('');
+      const [comments, setComments] = useState([]);
+      const [activeComment, setActiveComment] = useState(null);
+      const [newCommentText, setNewCommentText] = useState('');
+      const [pendingPin, setPendingPin] = useState(null);
+      const [isLoadingFigma, setIsLoadingFigma] = useState(false);
+      const [figmaError, setFigmaError] = useState('');
+      const [figmaToken, setFigmaToken] = useState(() => {
+        try {
+          return localStorage.getItem('figma_token') || '';
+        } catch {
+          return '';
+        }
+      });
+      const [showTokenInput, setShowTokenInput] = useState(false);
+      const [tokenInput, setTokenInput] = useState('');
+      const [rememberToken, setRememberToken] = useState(() => {
+        try {
+          return localStorage.getItem('figma_token') !== null;
+        } catch {
+          return false;
+        }
+      });
+      const prodImageRef = useRef(null);
+
+      const parseFigmaUrl = (url) => {
+        try {
+          const urlObj = new URL(url);
+          const pathname = urlObj.pathname;
+          const nodeIdParam = urlObj.searchParams.get('node-id');
+          
+          const designMatch = pathname.match(/\/(design|file)\/([^\/]+)/);
+          const branchMatch = pathname.match(/\/branch\/([^\/]+)/);
+          
+          let fileKey = designMatch ? designMatch[2] : null;
+          if (branchMatch) {
+            fileKey = branchMatch[1];
+          }
+          
+          const nodeId = nodeIdParam ? nodeIdParam.replace('-', ':') : '0:1';
+          
+          return { fileKey, nodeId };
+        } catch (e) {
+          return null;
+        }
+      };
+
+      const fetchFigmaScreenshot = async () => {
+        if (!figmaUrl.trim()) return;
+        
+        if (!figmaToken) {
+          setShowTokenInput(true);
+          return;
+        }
+        
+        const parsed = parseFigmaUrl(figmaUrl);
+        if (!parsed || !parsed.fileKey) {
+          setFigmaError('Invalid Figma URL. Please paste a valid Figma design link.');
+          return;
+        }
+
+        setIsLoadingFigma(true);
+        setFigmaError('');
+
+        try {
+          // Call our backend proxy instead of Figma directly
+          const response = await fetch(
+            `/api/figma/images/${parsed.fileKey}?ids=${encodeURIComponent(parsed.nodeId)}&format=png&scale=2`,
+            {
+              headers: {
+                'X-Figma-Token': figmaToken
+              }
+            }
+          );
+
+          if (!response.ok) {
+            if (response.status === 403 || response.status === 401) {
+              setFigmaToken('');
+              localStorage.removeItem('figma_token');
+              setShowTokenInput(true);
+              throw new Error('Invalid or expired token. Please reconnect to Figma.');
+            }
+            if (response.status === 404) {
+              throw new Error('File not found. Make sure you have access to this Figma file.');
+            }
+            throw new Error('Failed to fetch from Figma');
+          }
+
+          const data = await response.json();
+          
+          if (data.err) {
+            throw new Error(data.err);
+          }
+
+          const imageUrl = data.images?.[parsed.nodeId];
+          
+          if (imageUrl) {
+            setDesignImage(imageUrl);
+            setFigmaError('');
+          } else {
+            setFigmaError('Could not get image for this node. Try selecting a different frame.');
+          }
+        } catch (error) {
+          console.error('Figma fetch error:', error);
+          setFigmaError(error.message || 'Failed to fetch from Figma. Check your connection and try again.');
+        } finally {
+          setIsLoadingFigma(false);
+        }
+      };
+
+      const handleFigmaKeyDown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          fetchFigmaScreenshot();
+        }
+      };
+
+      const handleTokenSubmit = () => {
+        if (tokenInput.trim()) {
+          const token = tokenInput.trim();
+          setFigmaToken(token);
+          setShowTokenInput(false);
+          setTokenInput('');
+          
+          if (rememberToken) {
+            try {
+              localStorage.setItem('figma_token', token);
+            } catch (e) {
+              console.warn('Could not save token to localStorage');
+            }
+          }
+          
+          if (figmaUrl.trim()) {
+            setTimeout(() => fetchFigmaScreenshot(), 100);
+          }
+        }
+      };
+
+      const disconnectFigma = () => {
+        setFigmaToken('');
+        setDesignImage(null);
+        setFigmaUrl('');
+        try {
+          localStorage.removeItem('figma_token');
+        } catch (e) {
+          console.warn('Could not remove token from localStorage');
+        }
+      };
+
+      const handleDrop = useCallback((e, setter) => {
+        e.preventDefault();
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (event) => setter(event.target.result);
+          reader.readAsDataURL(file);
+        }
+      }, []);
+
+      const handleFileSelect = useCallback((e, setter) => {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (event) => setter(event.target.result);
+          reader.readAsDataURL(file);
+        }
+      }, []);
+
+      const handleImageClick = useCallback((e) => {
+        if (!prodImage || !prodImageRef.current) return;
+        
+        const rect = prodImageRef.current.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        
+        setPendingPin({ x, y });
+        setNewCommentText('');
+      }, [prodImage]);
+
+      const submitComment = useCallback(() => {
+        if (pendingPin && newCommentText.trim()) {
+          setComments(prev => [...prev, {
+            id: Date.now(),
+            x: pendingPin.x,
+            y: pendingPin.y,
+            text: newCommentText.trim(),
+            resolved: false
+          }]);
+          setPendingPin(null);
+          setNewCommentText('');
+        }
+      }, [pendingPin, newCommentText]);
+
+      const toggleResolved = useCallback((id) => {
+        setComments(prev => prev.map(c => 
+          c.id === id ? { ...c, resolved: !c.resolved } : c
+        ));
+      }, []);
+
+      const deleteComment = useCallback((id) => {
+        setComments(prev => prev.filter(c => c.id !== id));
+        if (activeComment === id) setActiveComment(null);
+      }, [activeComment]);
+
+      const DropZone = ({ onDrop, onFileSelect, image, children, inputId }) => (
+        <div
+          className="drop-zone"
+          onDrop={onDrop}
+          onDragOver={(e) => e.preventDefault()}
+        >
+          {image ? children : (
+            <div className="drop-placeholder">
+              <div className="drop-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg>
+              </div>
+              <p className="drop-text">Drop image here</p>
+              <span className="drop-or">or</span>
+              <label className="upload-btn" htmlFor={inputId}>
+                Browse files
+              </label>
+              <input
+                id={inputId}
+                type="file"
+                accept="image/*"
+                onChange={onFileSelect}
+                style={{ display: 'none' }}
+              />
+            </div>
+          )}
+        </div>
+      );
+
+      return (
+        <div className="qa-container">
+          <header className="header">
+            <div className="logo">
+              <div className="logo-mark">QA</div>
+              <div className="logo-text">Design<span>QA</span></div>
+            </div>
+            <div className="header-right">
+              {figmaToken && (
+                <div className="figma-status">
+                  <span className="dot"></span>
+                  Figma connected
+                  <button onClick={disconnectFigma} title="Disconnect">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+              {comments.length > 0 && (
+                <div className="comment-count">
+                  Comments <span className="count">{comments.filter(c => !c.resolved).length}</span>
+                </div>
+              )}
+            </div>
+          </header>
+
+          <div className="main-grid">
+            {/* Production Screenshot Panel */}
+            <div className="panel">
+              <div className="panel-header">
+                <div className="panel-title">
+                  <h2>Current Implementation</h2>
+                  <span className="panel-badge badge-prod">Production</span>
+                </div>
+                {prodImage && (
+                  <button className="clear-btn" onClick={() => { setProdImage(null); setComments([]); }}>
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="panel-content">
+                <DropZone
+                  onDrop={(e) => handleDrop(e, setProdImage)}
+                  onFileSelect={(e) => handleFileSelect(e, setProdImage)}
+                  image={prodImage}
+                  inputId="prod-upload"
+                >
+                  <div className="image-container" onClick={handleImageClick} ref={prodImageRef}>
+                    <img src={prodImage} alt="Production screenshot" className="preview-image" />
+                    
+                    {comments.map((comment, index) => (
+                      <div
+                        key={comment.id}
+                        className={`comment-pin ${comment.resolved ? 'resolved' : ''} ${activeComment === comment.id ? 'active' : ''}`}
+                        style={{ left: `${comment.x}%`, top: `${comment.y}%` }}
+                        onClick={(e) => { e.stopPropagation(); setActiveComment(comment.id); }}
+                      >
+                        <span>{index + 1}</span>
+                      </div>
+                    ))}
+                    
+                    {pendingPin && (
+                      <>
+                        <div className="pending-pin" style={{ left: `${pendingPin.x}%`, top: `${pendingPin.y}%` }} />
+                        <div 
+                          className="comment-input-popup"
+                          style={{ 
+                            left: `${Math.min(pendingPin.x, 60)}%`, 
+                            top: `${pendingPin.y + 5}%` 
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <textarea
+                            placeholder="What needs to change?"
+                            rows={3}
+                            value={newCommentText}
+                            onChange={(e) => setNewCommentText(e.target.value)}
+                            autoFocus
+                          />
+                          <div className="popup-actions">
+                            <button className="popup-btn cancel" onClick={() => setPendingPin(null)}>Cancel</button>
+                            <button className="popup-btn submit" onClick={submitComment}>Add Comment</button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </DropZone>
+                {prodImage && <p className="hint-text">Click anywhere on the image to leave a comment</p>}
+              </div>
+            </div>
+
+            {/* Design Reference Panel */}
+            <div className="panel">
+              <div className="panel-header">
+                <div className="panel-title">
+                  <h2>Design Reference</h2>
+                  <span className="panel-badge badge-design">Figma</span>
+                </div>
+                {(designImage || figmaUrl) && (
+                  <button className="clear-btn" onClick={() => { setDesignImage(null); setFigmaUrl(''); }}>
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="panel-content">
+                {!designImage && !isLoadingFigma && (
+                  <>
+                    {!figmaToken ? (
+                      <button className="connect-figma-btn" onClick={() => setShowTokenInput(true)}>
+                        <span className="figma-icon"></span>
+                        Connect to Figma
+                      </button>
+                    ) : (
+                      <div className="figma-input-wrapper">
+                        <div className="figma-input-row">
+                          <input
+                            type="text"
+                            className="figma-input"
+                            placeholder="Paste Figma link here..."
+                            value={figmaUrl}
+                            onChange={(e) => { setFigmaUrl(e.target.value); setFigmaError(''); }}
+                            onKeyDown={handleFigmaKeyDown}
+                          />
+                          <button 
+                            className="fetch-btn" 
+                            onClick={fetchFigmaScreenshot}
+                            disabled={!figmaUrl.trim()}
+                          >
+                            Fetch
+                          </button>
+                        </div>
+                        <p className="hint-figma">Press Enter to load the design</p>
+                        {figmaError && <div className="error-msg">{figmaError}</div>}
+                      </div>
+                    )}
+                    <div className="or-divider">or upload an image</div>
+                  </>
+                )}
+                {isLoadingFigma ? (
+                  <div className="drop-zone">
+                    <div className="loading-spinner">
+                      <div className="spinner"></div>
+                      <span className="loading-text">Fetching design from Figma...</span>
+                    </div>
+                  </div>
+                ) : (
+                  <DropZone
+                    onDrop={(e) => handleDrop(e, setDesignImage)}
+                    onFileSelect={(e) => handleFileSelect(e, setDesignImage)}
+                    image={designImage}
+                    inputId="design-upload"
+                  >
+                    <div className="image-container" style={{ cursor: 'default' }}>
+                      <img src={designImage} alt="Design reference" className="preview-image" />
+                    </div>
+                  </DropZone>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Comments List */}
+          {comments.length > 0 && (
+            <div className="comments-sidebar">
+              {comments.map((comment, index) => (
+                <div
+                  key={comment.id}
+                  className={`comment-card ${comment.resolved ? 'resolved' : ''} ${activeComment === comment.id ? 'active' : ''}`}
+                  onClick={() => setActiveComment(comment.id)}
+                >
+                  <div className="comment-card-header">
+                    <span className="comment-number">#{index + 1}</span>
+                    <div className="comment-actions">
+                      <button
+                        className="comment-action-btn resolve"
+                        onClick={(e) => { e.stopPropagation(); toggleResolved(comment.id); }}
+                        title={comment.resolved ? 'Unresolve' : 'Resolve'}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </button>
+                      <button
+                        className="comment-action-btn delete"
+                        onClick={(e) => { e.stopPropagation(); deleteComment(comment.id); }}
+                        title="Delete"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <p className="comment-text">{comment.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Token Input Modal */}
+          {showTokenInput && (
+            <div className="token-modal-overlay" onClick={() => setShowTokenInput(false)}>
+              <div className="token-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="token-modal-header">
+                  <div className="figma-logo">
+                    <svg width="20" height="20" viewBox="0 0 38 57" fill="white">
+                      <path d="M19 28.5C19 23.2533 23.2533 19 28.5 19C33.7467 19 38 23.2533 38 28.5C38 33.7467 33.7467 38 28.5 38C23.2533 38 19 33.7467 19 28.5Z"/>
+                      <path d="M0 47.5C0 42.2533 4.25329 38 9.5 38H19V47.5C19 52.7467 14.7467 57 9.5 57C4.25329 57 0 52.7467 0 47.5Z"/>
+                      <path d="M19 0V19H28.5C33.7467 19 38 14.7467 38 9.5C38 4.25329 33.7467 0 28.5 0H19Z"/>
+                      <path d="M0 9.5C0 14.7467 4.25329 19 9.5 19H19V0H9.5C4.25329 0 0 4.25329 0 9.5Z"/>
+                      <path d="M0 28.5C0 33.7467 4.25329 38 9.5 38H19V19H9.5C4.25329 19 0 23.2533 0 28.5Z"/>
+                    </svg>
+                  </div>
+                  <h3>Connect to Figma</h3>
+                </div>
+                <p>
+                  To fetch designs directly from Figma, you'll need a Personal Access Token. 
+                  <br /><br />
+                  <strong>How to get one:</strong><br />
+                  1. Go to <a href="https://www.figma.com/settings" target="_blank" rel="noopener noreferrer">Figma Settings</a><br />
+                  2. Scroll to "Personal access tokens"<br />
+                  3. Click "Generate new token"<br />
+                  4. Copy and paste it below
+                </p>
+                <input
+                  type="password"
+                  className="token-input"
+                  placeholder="figd_xxxxxxxxxxxxxxxxxxxxxxxx"
+                  value={tokenInput}
+                  onChange={(e) => setTokenInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleTokenSubmit()}
+                  autoFocus
+                />
+                <label className="remember-me">
+                  <input 
+                    type="checkbox" 
+                    checked={rememberToken} 
+                    onChange={(e) => setRememberToken(e.target.checked)} 
+                  />
+                  <div className="checkbox-custom">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <span>Remember me on this device</span>
+                </label>
+                <div className="token-modal-actions">
+                  <button className="token-modal-btn cancel" onClick={() => setShowTokenInput(false)}>
+                    Cancel
+                  </button>
+                  <button 
+                    className="token-modal-btn connect" 
+                    onClick={handleTokenSubmit}
+                    disabled={!tokenInput.trim()}
+                  >
+                    Connect
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<DesignQA />);
+  </script>
+</body>
+</html>
