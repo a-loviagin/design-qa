@@ -168,7 +168,7 @@
     .panel-content {
       flex: 1;
       padding: 16px;
-      overflow: hidden;
+      overflow: visible;
       display: flex;
       flex-direction: column;
     }
@@ -182,7 +182,7 @@
       justify-content: center;
       transition: all 0.2s;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
     }
     
     .drop-zone:hover {
@@ -237,6 +237,7 @@
       align-items: center;
       justify-content: center;
       cursor: crosshair;
+      overflow: visible;
     }
     
     .preview-image {
@@ -308,8 +309,13 @@
       border-radius: 12px;
       padding: 12px;
       width: 280px;
+      max-width: calc(100% - 32px);
+      max-height: 400px;
       z-index: 100;
       box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      pointer-events: auto;
+      overflow: visible;
+      transform: translateZ(0);
     }
     
     .comment-input-popup textarea {
@@ -964,7 +970,14 @@
       const [isSaving, setIsSaving] = useState(false);
       const [saveMessage, setSaveMessage] = useState('');
       const prodImageRef = useRef(null);
-      const [tokenDropdown, setTokenDropdown] = useState({ show: false, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
+      const [tokenDropdown, setTokenDropdown] = useState({ 
+        show: false, 
+        level: 1, // 1 = command selection, 2 = style selection
+        type: null, 
+        tokens: [], 
+        selectedIndex: 0, 
+        commandStart: 0 
+      });
       const commentTextareaRef = useRef(null);
 
       // Save comments to localStorage whenever they change
@@ -1136,15 +1149,27 @@
         }
       };
 
-      const fetchFigmaStyles = async (type) => {
+      const selectCommand = async (commandType) => {
         if (!figmaUrl.trim() || !figmaToken) {
-          setTokenDropdown({ show: false, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
+          setTokenDropdown(prev => ({
+            ...prev,
+            level: 2,
+            type: commandType,
+            tokens: [],
+            selectedIndex: 0
+          }));
           return;
         }
 
         const parsed = parseFigmaUrl(figmaUrl);
         if (!parsed || !parsed.fileKey) {
-          setTokenDropdown({ show: false, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
+          setTokenDropdown(prev => ({
+            ...prev,
+            level: 2,
+            type: commandType,
+            tokens: [],
+            selectedIndex: 0
+          }));
           return;
         }
 
@@ -1156,21 +1181,35 @@
           });
 
           if (!response.ok) {
-            setTokenDropdown({ show: false, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
+            setTokenDropdown(prev => ({
+              ...prev,
+              level: 2,
+              type: commandType,
+              tokens: [],
+              selectedIndex: 0
+            }));
             return;
           }
 
           const data = await response.json();
-          const tokens = type === 'color' ? (data.colors || []) : (data.typography || []);
+          const tokens = commandType === 'color' ? (data.colors || []) : (data.typography || []);
           
           setTokenDropdown(prev => ({
             ...prev,
+            level: 2,
+            type: commandType,
             tokens,
             selectedIndex: 0
           }));
         } catch (error) {
           console.error('Failed to fetch styles:', error);
-          setTokenDropdown({ show: false, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
+          setTokenDropdown(prev => ({
+            ...prev,
+            level: 2,
+            type: commandType,
+            tokens: [],
+            selectedIndex: 0
+          }));
         }
       };
 
@@ -1189,37 +1228,28 @@
         if (lastSlashIndex !== -1 && !hasSpaceOrNewline) {
           const commandText = textAfterSlash.toLowerCase();
           
-          if (commandText === 'color' || commandText === 'colour') {
+          // If just "/" or empty after slash, show first level (command selection)
+          if (commandText === '' || commandText.length === 0) {
             setTokenDropdown({
               show: true,
-              type: 'color',
+              level: 1,
+              type: null,
               tokens: [],
               selectedIndex: 0,
               commandStart: lastSlashIndex
             });
-            fetchFigmaStyles('color');
-          } else if (commandText === 'type') {
-            setTokenDropdown({
-              show: true,
-              type: 'typography',
-              tokens: [],
-              selectedIndex: 0,
-              commandStart: lastSlashIndex
-            });
-            fetchFigmaStyles('typography');
-          } else if (commandText.startsWith('color') || commandText.startsWith('colour') || commandText.startsWith('type')) {
-            // User is still typing the command, keep dropdown open if it matches
-            const currentType = tokenDropdown.type;
-            if (currentType && (commandText.startsWith('color') || commandText.startsWith('colour') || commandText.startsWith('type'))) {
-              // Keep dropdown open, just update command start
-              setTokenDropdown(prev => ({ ...prev, commandStart: lastSlashIndex }));
-            }
-          } else {
-            // User is typing something else after slash, hide dropdown
-            setTokenDropdown({ show: false, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
+          } 
+          // If user selected a command and we're in level 2, show styles
+          else if (tokenDropdown.level === 2 && tokenDropdown.type) {
+            // Keep level 2 dropdown open, just update command start if needed
+            setTokenDropdown(prev => ({ ...prev, commandStart: lastSlashIndex }));
+          }
+          // If user is typing something else, hide dropdown
+          else {
+            setTokenDropdown({ show: false, level: 1, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
           }
         } else {
-          setTokenDropdown({ show: false, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
+          setTokenDropdown({ show: false, level: 1, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
         }
       };
 
@@ -1228,22 +1258,51 @@
 
         if (e.key === 'ArrowDown') {
           e.preventDefault();
-          setTokenDropdown(prev => ({
-            ...prev,
-            selectedIndex: Math.min(prev.selectedIndex + 1, prev.tokens.length - 1)
-          }));
+          if (tokenDropdown.level === 1) {
+            // First level: navigate between "colours" and "type"
+            setTokenDropdown(prev => ({
+              ...prev,
+              selectedIndex: Math.min(prev.selectedIndex + 1, 1)
+            }));
+          } else {
+            // Second level: navigate between styles
+            const maxIndex = tokenDropdown.tokens.length > 0 ? tokenDropdown.tokens.length - 1 : 0;
+            setTokenDropdown(prev => ({
+              ...prev,
+              selectedIndex: Math.min(prev.selectedIndex + 1, maxIndex)
+            }));
+          }
         } else if (e.key === 'ArrowUp') {
           e.preventDefault();
           setTokenDropdown(prev => ({
             ...prev,
             selectedIndex: Math.max(prev.selectedIndex - 1, 0)
           }));
-        } else if (e.key === 'Enter' && tokenDropdown.tokens.length > 0) {
+        } else if (e.key === 'Enter') {
           e.preventDefault();
-          insertToken(tokenDropdown.tokens[tokenDropdown.selectedIndex]);
+          if (tokenDropdown.level === 1) {
+            // First level: select command
+            const commandType = tokenDropdown.selectedIndex === 0 ? 'color' : 'typography';
+            selectCommand(commandType);
+          } else if (tokenDropdown.level === 2 && tokenDropdown.tokens.length > 0) {
+            // Second level: insert token
+            insertToken(tokenDropdown.tokens[tokenDropdown.selectedIndex]);
+          }
         } else if (e.key === 'Escape') {
           e.preventDefault();
-          setTokenDropdown({ show: false, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
+          if (tokenDropdown.level === 2) {
+            // Go back to level 1
+            setTokenDropdown(prev => ({
+              ...prev,
+              level: 1,
+              type: null,
+              tokens: [],
+              selectedIndex: 0
+            }));
+          } else {
+            // Close dropdown
+            setTokenDropdown({ show: false, level: 1, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
+          }
         }
       };
 
@@ -1273,7 +1332,7 @@
 
         const newText = currentText.substring(0, commandStart) + tokenText + ' ' + currentText.substring(commandEnd);
         setNewCommentText(newText);
-        setTokenDropdown({ show: false, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
+        setTokenDropdown({ show: false, level: 1, type: null, tokens: [], selectedIndex: 0, commandStart: 0 });
         
         // Set cursor position after inserted token
         setTimeout(() => {
@@ -1622,7 +1681,9 @@
                           className="comment-input-popup"
                           style={{ 
                             left: `${Math.min(pendingPin.x, 60)}%`, 
-                            top: `${pendingPin.y + 5}%` 
+                            top: `${Math.min(pendingPin.y + 5, 80)}%`,
+                            maxWidth: '280px',
+                            maxHeight: '400px'
                           }}
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -1638,36 +1699,53 @@
                             />
                             {tokenDropdown.show && (
                               <div className="token-dropdown">
-                                {tokenDropdown.tokens.length === 0 && tokenDropdown.type ? (
-                                  <div className="token-dropdown-item" style={{ color: '#71717a', fontStyle: 'italic', cursor: 'default' }}>
-                                    {tokenDropdown.type === 'color' ? 'No color tokens found' : 'No typography tokens found'}
-                                  </div>
-                                ) : tokenDropdown.tokens.length > 0 ? (
-                                  tokenDropdown.tokens.map((token, idx) => (
+                                {tokenDropdown.level === 1 ? (
+                                  // Level 1: Show command options
+                                  <>
                                     <div
-                                      key={token.id || idx}
-                                      className={`token-dropdown-item ${idx === tokenDropdown.selectedIndex ? 'selected' : ''}`}
-                                      onClick={() => insertToken(token)}
-                                      onMouseEnter={() => setTokenDropdown(prev => ({ ...prev, selectedIndex: idx }))}
+                                      className={`token-dropdown-item ${tokenDropdown.selectedIndex === 0 ? 'selected' : ''}`}
+                                      onClick={() => selectCommand('color')}
+                                      onMouseEnter={() => setTokenDropdown(prev => ({ ...prev, selectedIndex: 0 }))}
                                     >
-                                      {tokenDropdown.type === 'color' ? (
-                                        <>
-                                          <span className="token-color-preview" style={{ backgroundColor: token.value }}></span>
-                                          <span className="token-name">{token.name}</span>
-                                          <span className="token-value">{token.value}</span>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <span className="token-name">{token.name}</span>
-                                          <span className="token-value">{token.fontSize}px {token.fontFamily || 'N/A'}</span>
-                                        </>
-                                      )}
+                                      <span className="token-name">colours</span>
                                     </div>
-                                  ))
+                                    <div
+                                      className={`token-dropdown-item ${tokenDropdown.selectedIndex === 1 ? 'selected' : ''}`}
+                                      onClick={() => selectCommand('typography')}
+                                      onMouseEnter={() => setTokenDropdown(prev => ({ ...prev, selectedIndex: 1 }))}
+                                    >
+                                      <span className="token-name">type</span>
+                                    </div>
+                                  </>
                                 ) : (
-                                  <div className="token-dropdown-item" style={{ color: '#71717a', fontStyle: 'italic', cursor: 'default' }}>
-                                    Loading tokens...
-                                  </div>
+                                  // Level 2: Show styles or "No styles found"
+                                  tokenDropdown.tokens.length === 0 ? (
+                                    <div className="token-dropdown-item" style={{ color: '#71717a', fontStyle: 'italic', cursor: 'default', pointerEvents: 'none' }}>
+                                      No styles found
+                                    </div>
+                                  ) : (
+                                    tokenDropdown.tokens.map((token, idx) => (
+                                      <div
+                                        key={token.id || idx}
+                                        className={`token-dropdown-item ${idx === tokenDropdown.selectedIndex ? 'selected' : ''}`}
+                                        onClick={() => insertToken(token)}
+                                        onMouseEnter={() => setTokenDropdown(prev => ({ ...prev, selectedIndex: idx }))}
+                                      >
+                                        {tokenDropdown.type === 'color' ? (
+                                          <>
+                                            <span className="token-color-preview" style={{ backgroundColor: token.value }}></span>
+                                            <span className="token-name">{token.name}</span>
+                                            <span className="token-value">{token.value}</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <span className="token-name">{token.name}</span>
+                                            <span className="token-value">{token.fontSize}px {token.fontFamily || 'N/A'}</span>
+                                          </>
+                                        )}
+                                      </div>
+                                    ))
+                                  )
                                 )}
                               </div>
                             )}
