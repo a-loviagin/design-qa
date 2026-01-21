@@ -841,13 +841,31 @@
   <div id="root"></div>
   
   <script type="text/babel">
-    const { useState, useRef, useCallback } = React;
+    const { useState, useRef, useCallback, useEffect } = React;
 
     const DesignQA = () => {
-      const [prodImage, setProdImage] = useState(null);
-      const [designImage, setDesignImage] = useState(null);
-      const [figmaUrl, setFigmaUrl] = useState('');
-      const [comments, setComments] = useState([]);
+      const [designImage, setDesignImage] = useState(() => {
+        try {
+          return localStorage.getItem('designqa_design_image') || null;
+        } catch {
+          return null;
+        }
+      });
+      const [figmaUrl, setFigmaUrl] = useState(() => {
+        try {
+          return localStorage.getItem('designqa_figma_url') || '';
+        } catch {
+          return '';
+        }
+      });
+      const [comments, setComments] = useState(() => {
+        try {
+          const saved = localStorage.getItem('designqa_comments');
+          return saved ? JSON.parse(saved) : [];
+        } catch {
+          return [];
+        }
+      });
       const [activeComment, setActiveComment] = useState(null);
       const [newCommentText, setNewCommentText] = useState('');
       const [pendingPin, setPendingPin] = useState(null);
@@ -870,6 +888,62 @@
         }
       });
       const prodImageRef = useRef(null);
+
+      // Save comments to localStorage whenever they change
+      useEffect(() => {
+        try {
+          localStorage.setItem('designqa_comments', JSON.stringify(comments));
+        } catch (e) {
+          console.warn('Could not save comments to localStorage');
+        }
+      }, [comments]);
+
+      // Also persist the production image so comments make sense when returning
+      const [prodImage, setProdImage] = useState(() => {
+        try {
+          return localStorage.getItem('designqa_prod_image') || null;
+        } catch {
+          return null;
+        }
+      });
+
+      useEffect(() => {
+        try {
+          if (prodImage) {
+            localStorage.setItem('designqa_prod_image', prodImage);
+          } else {
+            localStorage.removeItem('designqa_prod_image');
+          }
+        } catch (e) {
+          console.warn('Could not save image to localStorage');
+        }
+      }, [prodImage]);
+
+      // Save design image to localStorage
+      useEffect(() => {
+        try {
+          if (designImage) {
+            localStorage.setItem('designqa_design_image', designImage);
+          } else {
+            localStorage.removeItem('designqa_design_image');
+          }
+        } catch (e) {
+          console.warn('Could not save design image to localStorage');
+        }
+      }, [designImage]);
+
+      // Save Figma URL to localStorage
+      useEffect(() => {
+        try {
+          if (figmaUrl) {
+            localStorage.setItem('designqa_figma_url', figmaUrl);
+          } else {
+            localStorage.removeItem('designqa_figma_url');
+          }
+        } catch (e) {
+          console.warn('Could not save Figma URL to localStorage');
+        }
+      }, [figmaUrl]);
 
       const parseFigmaUrl = (url) => {
         try {
@@ -1117,7 +1191,12 @@
                   <span className="panel-badge badge-prod">Production</span>
                 </div>
                 {prodImage && (
-                  <button className="clear-btn" onClick={() => { setProdImage(null); setComments([]); }}>
+                  <button className="clear-btn" onClick={() => { 
+                    setProdImage(null); 
+                    setComments([]); 
+                    localStorage.removeItem('designqa_prod_image');
+                    localStorage.removeItem('designqa_comments');
+                  }}>
                     Clear
                   </button>
                 )}
@@ -1182,7 +1261,12 @@
                   <span className="panel-badge badge-design">Figma</span>
                 </div>
                 {(designImage || figmaUrl) && (
-                  <button className="clear-btn" onClick={() => { setDesignImage(null); setFigmaUrl(''); }}>
+                  <button className="clear-btn" onClick={() => { 
+                    setDesignImage(null); 
+                    setFigmaUrl(''); 
+                    localStorage.removeItem('designqa_design_image');
+                    localStorage.removeItem('designqa_figma_url');
+                  }}>
                     Clear
                   </button>
                 )}
