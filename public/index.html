@@ -889,8 +889,8 @@
         }
       });
       const [activePinId, setActivePinId] = useState(null);
-      const [newCommentText, setNewCommentText] = useState('');
-      const [activePinCommentText, setActivePinCommentText] = useState('');
+      const newCommentRef = useRef(null);
+      const activePinCommentRef = useRef(null);
       const [pendingPin, setPendingPin] = useState(null);
       const [isLoadingFigma, setIsLoadingFigma] = useState(false);
       const [figmaError, setFigmaError] = useState('');
@@ -1200,13 +1200,19 @@
         const y = ((e.clientY - rect.top) / rect.height) * 100;
         
         setActivePinId(null);
-        setActivePinCommentText('');
+        if (activePinCommentRef.current) {
+          activePinCommentRef.current.value = '';
+        }
         setPendingPin({ x, y });
-        setNewCommentText('');
+        if (newCommentRef.current) {
+          newCommentRef.current.value = '';
+        }
       }, [prodImage]);
 
       const submitComment = useCallback(() => {
-        if (pendingPin && newCommentText.trim()) {
+        const raw = newCommentRef.current ? newCommentRef.current.value : '';
+        const trimmed = (raw || '').trim();
+        if (pendingPin && trimmed) {
           setComments(prev => [...prev, {
             id: Date.now(),
             x: pendingPin.x,
@@ -1214,19 +1220,23 @@
             comments: [
               {
                 id: `${Date.now()}-1`,
-                text: newCommentText.trim(),
+                text: trimmed,
                 resolved: false,
               },
             ],
           }]);
           setPendingPin(null);
-          setNewCommentText('');
+          if (newCommentRef.current) {
+            newCommentRef.current.value = '';
+          }
         }
-      }, [pendingPin, newCommentText]);
+      }, [pendingPin]);
 
       const addCommentToActivePin = useCallback(() => {
-        if (!activePinId || !activePinCommentText.trim()) return;
-        const text = activePinCommentText.trim();
+        if (!activePinId || !activePinCommentRef.current) return;
+        const raw = activePinCommentRef.current.value || '';
+        const text = raw.trim();
+        if (!text) return;
         setComments(prev =>
           prev.map(pin =>
             pin.id === activePinId
@@ -1244,8 +1254,10 @@
               : pin
           )
         );
-        setActivePinCommentText('');
-      }, [activePinId, activePinCommentText]);
+        if (activePinCommentRef.current) {
+          activePinCommentRef.current.value = '';
+        }
+      }, [activePinId]);
 
       const toggleResolved = useCallback((pinId, commentId) => {
         setComments(prev =>
@@ -1277,7 +1289,9 @@
           }, [])
         );
         setActivePinId(null);
-        setActivePinCommentText('');
+        if (activePinCommentRef.current) {
+          activePinCommentRef.current.value = '';
+        }
       }, []);
 
       const DropZone = ({ onDrop, onFileSelect, image, children, inputId }) => (
@@ -1395,7 +1409,7 @@
                           e.stopPropagation(); 
                           setPendingPin(null);
                           setActivePinId(pin.id); 
-                          setActivePinCommentText(''); 
+                          if (activePinCommentRef.current) activePinCommentRef.current.value = '';
                         }}
                       >
                         <span>{index + 1}</span>
@@ -1416,12 +1430,14 @@
                           <textarea
                             placeholder="What needs to change?"
                             rows={3}
-                            value={newCommentText}
-                            onChange={(e) => setNewCommentText(e.target.value)}
+                            ref={newCommentRef}
                             autoFocus
                           />
                           <div className="popup-actions">
-                            <button className="popup-btn cancel" onClick={() => setPendingPin(null)}>Cancel</button>
+                            <button className="popup-btn cancel" onClick={() => { 
+                              setPendingPin(null); 
+                              if (newCommentRef.current) newCommentRef.current.value = '';
+                            }}>Cancel</button>
                             <button className="popup-btn submit" onClick={submitComment}>Add Comment</button>
                           </div>
                         </div>
@@ -1473,12 +1489,14 @@
                         <textarea
                           placeholder={activePin.comments.length ? 'Add another note…' : 'What needs to change?'}
                           rows={3}
-                          value={activePinCommentText}
-                          onChange={(e) => setActivePinCommentText(e.target.value)}
+                          ref={activePinCommentRef}
                           autoFocus={!pendingPin}
                         />
                         <div className="popup-actions">
-                          <button className="popup-btn cancel" onClick={() => { setActivePinId(null); setActivePinCommentText(''); }}>Close</button>
+                          <button className="popup-btn cancel" onClick={() => { 
+                            setActivePinId(null); 
+                            if (activePinCommentRef.current) activePinCommentRef.current.value = '';
+                          }}>Close</button>
                           <button className="popup-btn submit" onClick={addCommentToActivePin}>Add Comment</button>
                         </div>
                       </div>
