@@ -887,6 +887,9 @@
           return false;
         }
       });
+      const [sessionId, setSessionId] = useState(null);
+      const [isSaving, setIsSaving] = useState(false);
+      const [saveMessage, setSaveMessage] = useState('');
       const prodImageRef = useRef(null);
 
       // Save comments to localStorage whenever they change
@@ -944,6 +947,34 @@
           console.warn('Could not save Figma URL to localStorage');
         }
       }, [figmaUrl]);
+
+      // Load session from backend if ?session=<id> is present in URL
+      useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const urlSessionId = params.get('session');
+        if (!urlSessionId) return;
+
+        (async () => {
+          try {
+            const res = await fetch(`/api/sessions/${encodeURIComponent(urlSessionId)}`);
+            if (!res.ok) {
+              console.warn('Failed to load session from backend');
+              return;
+            }
+            const data = await res.json();
+            if (!data.session) return;
+
+            const s = data.session;
+            setSessionId(s.id);
+            if (typeof s.prodImage === 'string') setProdImage(s.prodImage);
+            if (typeof s.designImage === 'string') setDesignImage(s.designImage);
+            if (typeof s.figmaUrl === 'string') setFigmaUrl(s.figmaUrl);
+            if (Array.isArray(s.comments)) setComments(s.comments);
+          } catch (e) {
+            console.warn('Error fetching session from backend', e);
+          }
+        })();
+      }, []);
 
       const parseFigmaUrl = (url) => {
         try {
@@ -1027,6 +1058,56 @@
           setFigmaError(error.message || 'Failed to fetch from Figma. Check your connection and try again.');
         } finally {
           setIsLoadingFigma(false);
+        }
+      };
+
+      const saveSession = async () => {
+        if (!prodImage && !designImage && !figmaUrl && comments.length === 0) {
+          setSaveMessage('Nothing to save yet.');
+          setTimeout(() => setSaveMessage(''), 2000);
+          return;
+        }
+
+        setIsSaving(true);
+        setSaveMessage('');
+
+        try {
+          const res = await fetch('/api/sessions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              id: sessionId || undefined,
+              prodImage,
+              designImage,
+              figmaUrl,
+              comments,
+            }),
+          });
+
+          if (!res.ok) {
+            throw new Error('Failed to save session');
+          }
+
+          const data = await res.json();
+          if (data && data.id) {
+            setSessionId(data.id);
+
+            // Update URL so it can be shared/bookmarked
+            const url = new URL(window.location.href);
+            url.searchParams.set('session', data.id);
+            window.history.replaceState({}, '', url.toString());
+
+            setSaveMessage('Session saved.');
+            setTimeout(() => setSaveMessage(''), 2500);
+          }
+        } catch (e) {
+          console.error('Save session error:', e);
+          setSaveMessage('Could not save. Please try again.');
+          setTimeout(() => setSaveMessage(''), 3000);
+        } finally {
+          setIsSaving(false);
         }
       };
 
@@ -1179,6 +1260,14 @@
                   Comments <span className="count">{comments.filter(c => !c.resolved).length}</span>
                 </div>
               )}
+              <button 
+                className="upload-btn" 
+                style={{ padding: '8px 16px', fontSize: 12 }} 
+                onClick={saveSession}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving…' : (sessionId ? 'Save Session' : 'Save New Session')}
+              </button>
             </div>
           </header>
 

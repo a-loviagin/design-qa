@@ -1,13 +1,48 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Simple file-backed "database" for sessions
+const DB_FILE = path.join(__dirname, 'data.json');
+
+let db = { sessions: [] };
+
+function loadDb() {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const raw = fs.readFileSync(DB_FILE, 'utf8');
+      db = JSON.parse(raw || '{"sessions":[]}');
+      if (!Array.isArray(db.sessions)) {
+        db.sessions = [];
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load database file, starting with empty DB.', err);
+    db = { sessions: [] };
+  }
+}
+
+function saveDb() {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Failed to save database file.', err);
+  }
+}
+
+function generateId() {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+loadDb();
+
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 // Figma API proxy endpoint - bypasses CORS
@@ -44,6 +79,85 @@ app.get('/api/figma/images/:fileKey', async (req, res) => {
     console.error('Figma API error:', error);
     res.status(500).json({ error: 'Failed to fetch from Figma' });
   }
+});
+
+// Simple session storage API
+// Shape:
+// {
+//   id?: string;
+//   prodImage: string | null;
+//   designImage: string | null;
+//   figmaUrl: string;
+//   comments: Array<{ id: number; x: number; y: number; text: string; resolved: boolean }>
+// }
+
+// Create or update a session
+app.post('/api/sessions', (req, res) => {
+  const { id, prodImage, designImage, figmaUrl, comments } = req.body || {};
+
+  if (!prodImage && !designImage && !figmaUrl && (!Array.isArray(comments) || comments.length === 0)) {
+    return res.status(400).json({ error: 'Nothing to save. Provide at least one of prodImage, designImage, figmaUrl, or comments.' });
+  }
+
+  const now = new Date().toISOString();
+  let session;
+
+  if (id) {
+    const existingIndex = db.sessions.findIndex((s) => s.id === id);
+    if (existingIndex === -1) {
+      return res.status(404).json({ error: 'Session not found for update.' });
+    }
+
+    session = {
+      ...db.sessions[existingIndex],
+      prodImage: typeof prodImage !== 'undefined' ? prodImage : db.sessions[existingIndex].prodImage,
+      designImage: typeof designImage !== 'undefined' ? designImage : db.sessions[existingIndex].designImage,
+      figmaUrl: typeof figmaUrl !== 'undefined' ? figmaUrl : db.sessions[existingIndex].figmaUrl,
+      comments: Array.isArray(comments) ? comments : db.sessions[existingIndex].comments,
+      updatedAt: now,
+    };
+
+    db.sessions[existingIndex] = session;
+  } else {
+    const newId = generateId();
+    session = {
+      id: newId,
+      prodImage: prodImage || null,
+      designImage: designImage || null,
+      figmaUrl: figmaUrl || '',
+      comments: Array.isArray(comments) ? comments : [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    db.sessions.push(session);
+  }
+
+  saveDb();
+
+  res.json({ id: session.id, session });
+});
+
+// Get a single session
+app.get('/api/sessions/:id', (req, res) => {
+  const { id } = req.params;
+  const session = db.sessions.find((s) => s.id === id);
+
+  if (!session) {
+    return res.status(404).json({ error: 'Session not found.' });
+  }
+
+  res.json({ session });
+});
+
+// (Optional) list sessions - useful for debugging / admin
+app.get('/api/sessions', (req, res) => {
+  res.json({
+    sessions: db.sessions.map(({ id, createdAt, updatedAt }) => ({
+      id,
+      createdAt,
+      updatedAt,
+    })),
+  });
 });
 
 // Figma file info endpoint (optional - for getting file name, etc.)
